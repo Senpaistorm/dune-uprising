@@ -29,21 +29,28 @@ const allLeaderCards: Card[] = [
 export const DuneUprising: Game<GameState> = {
   name: 'dune-uprising',
   setup: ({ ctx }) => {
-    const deck = [...allStartingCards].sort(() => Math.random() - 0.5);
     const intrigueDeck = [...allIntrigueCards].sort(() => Math.random() - 0.5);
     const leaderDeck = [...allLeaderCards].sort(() => Math.random() - 0.5);
     const players: GameState['players'] = {};
+    const garrisonedTroops: GameState['garrisonedTroops'] = {};
     for (let i = 0; i < ctx.numPlayers; i++) {
-      // Give each player 5 cards from the deck
-      const playerDeck = deck.splice(0, 5);
+      const deck = [...allStartingCards].sort(() => Math.random() - 0.5);
+      // randomize leader for now
+      const playerLeader = leaderDeck.pop()!;
       players[i.toString()] = {
         hand: [],
         intrigue: [],
-        deck: playerDeck,
+        deck: deck,
+        leader: playerLeader,
+        water: 1,
+        spice: 0,
+        solari: 0,
+        spies: 3
       };
+      garrisonedTroops[i.toString()] = 3;
     }
 
-    return { deck, intrigueDeck, leaderDeck, players };
+    return { intrigueDeck, players, garrisonedTroops };
   },
 
   moves: {

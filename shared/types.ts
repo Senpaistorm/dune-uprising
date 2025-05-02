@@ -8,6 +8,11 @@ export interface Card {
     hand: Card[];
     deck: Card[];
     intrigue: Card[];
+    leader: Card;
+    water: number;
+    spice: number;
+    solari: number;
+    spies: number;
   }
   
   export interface GameState {
@@ -15,5 +20,8 @@ export interface Card {
     players: {
       [playerId: string]: PlayerState;
     };
+    garrisonedTroops: {
+      [playerId: string]: number;
+    }
   }
   
