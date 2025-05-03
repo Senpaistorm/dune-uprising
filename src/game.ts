@@ -1,17 +1,18 @@
 import { Game } from 'boardgame.io';
-import { GameState, Card, BoardState } from '@shared/types';
+import { GameState, Card, BoardState, AgentCard } from '@shared/types';
+import { INVALID_MOVE } from 'boardgame.io/core';
 
-const allStartingCards: Card[] = [
-  { id: 'c_recon', name: 'Reconnaissance', type: 'main' },
-  { id: 'c_dagger', name: 'Dagger', type: 'main' },
-  { id: 'c_dagger', name: 'Dagger', type: 'main' },
-  { id: 'c_seek', name: 'Seek Allies', type: 'main' },
-  { id: 'c_signet', name: 'Signet Ring', type: 'main' },
-  { id: 'c_dune', name: 'Dune, The Desert Planet', type: 'main' },
-  { id: 'c_dune', name: 'Dune, The Desert Planet', type: 'main' },
-  { id: 'c_diplomacy', name: 'Diplomacy', type: 'main' },
-  { id: 'c_convincing', name: 'Convincing Argument', type: 'main' },
-  { id: 'c_convincing', name: 'Convincing Argument', type: 'main' },
+const allStartingCards: AgentCard[] = [
+  { id: 'c_recon', name: 'Reconnaissance', type: 'main', agentIcons: ['city'] },
+  { id: 'c_dagger', name: 'Dagger', type: 'main', agentIcons: ['landsraad'] },
+  { id: 'c_dagger', name: 'Dagger', type: 'main', agentIcons: ['landsraad'] },
+  { id: 'c_seek', name: 'Seek Allies', type: 'main', agentIcons: ['bene_gesserit', 'emperor', 'fremen', 'spacing_guild'] },
+  { id: 'c_signet', name: 'Signet Ring', type: 'main', agentIcons: ['spice_trade', 'landsraad', 'city'] },
+  { id: 'c_dune', name: 'Dune, The Desert Planet', type: 'main', agentIcons: ['spice_trade'] },
+  { id: 'c_dune', name: 'Dune, The Desert Planet', type: 'main', agentIcons: ['spice_trade'] },
+  { id: 'c_diplomacy', name: 'Diplomacy', type: 'main', agentIcons: ['bene_gesserit', 'emperor', 'fremen', 'spacing_guild'] },
+  { id: 'c_convincing', name: 'Convincing Argument', type: 'main', agentIcons: [] },
+  { id: 'c_convincing', name: 'Convincing Argument', type: 'main', agentIcons: [] },
 ];
 
 const imperiumCards: Card[] = [
@@ -19,8 +20,8 @@ const imperiumCards: Card[] = [
   { id: 'i_secret', name: 'Secret Deal', type: 'intrigue' },
 ];
 
-const prepareTheWay : Card = { id: 'r_prepare_the_way', name: 'Prepare the Way', type: 'main' };
-const spiceMustFlow : Card = { id: 'r_spice_must_flow', name: 'Spice Must Flow', type: 'main' };
+const prepareTheWay : AgentCard = { id: 'r_prepare_the_way', name: 'Prepare the Way', type: 'main', agentIcons: ['landsraad', 'city'] };
+const spiceMustFlow : AgentCard = { id: 'r_spice_must_flow', name: 'Spice Must Flow', type: 'main', agentIcons: [] };
 
 
 const allIntrigueCards: Card[] = [
@@ -55,6 +56,7 @@ export const DuneUprising: Game<GameState> = {
 
     const board: BoardState = {
       'ImperialBasin': {
+        agentIcon: 'spice_trade',
         playerAgents: [],
         cost: {
           water: 0,
@@ -103,61 +105,61 @@ export const DuneUprising: Game<GameState> = {
 
       G.players[playerId].hand.push(card);
     },
+    placeAgent: ({ G, playerID }, cardId: string, location: string) => {
+      // Validation phase
+      const playerState = G.players[playerID];
 
-    drawIntrigueCard: ({ G, ctx }) => {
-      const playerId = ctx.currentPlayer;
-      const card = G.intrigueDeck.pop();
-
-      if (!card) return;
-
-      G.players[playerId].intrigue.push(card);
-    },
-    drawLeaderCard: ({ G, ctx }) => {
-      const playerId = ctx.currentPlayer;
-      const card = G.players[playerId].deck.pop();
-
-      if (!card) return;
-      
-    }
-  },
-
-  phases: {
-    plot: {
-      moves: {
-        drawCard: ({ G, ctx }) => {
-          const playerId = ctx.currentPlayer;
-          const card = G.players[playerId].deck.pop();
-
-          if (!card) return;
-        },
-        placeAgent: ({ G, ctx, cardId, location }) => {
-          const playerId = ctx.currentPlayer;
-          const card = G.players[playerId].hand.find(card => card.id === cardId);
-
-          if (!card) return;
-
-          G.players[playerId].hand = G.players[playerId].hand.filter(card => card.id !== cardId);
-          G.players[playerId].availableAgents--;
-          G.board[location as string].playerAgents.push(playerId);
-        },
-        reveal: ({ G, ctx }) => {
-          const playerId = ctx.currentPlayer;
-          G.players[playerId].revealed = true;
-        }
-      },
-      endIf: ({ G, ctx, random, ...plugins }) => {
-        return Object.values(G.players).every(player => player.revealed);
+      const card = playerState.hand.find(card => card.id === cardId);
+      if (!card) {
+        console.log('Invalid move: Card not found in hand');
+        return INVALID_MOVE;
       }
-    },
-    Combat: {
-      moves: {
-        drawCard: ({ G, ctx }) => {
-          const playerId = ctx.currentPlayer;
-          const card = G.players[playerId].deck.pop();
 
-          if (!card) return;
-        }
+      const locationState = G.board[location];
+      if (!locationState) {
+        console.log('Invalid move: Location does not exist');
+        return INVALID_MOVE;
       }
+
+      if (!card.agentIcons.includes(locationState.agentIcon)) {
+        console.log('Invalid move: Card does not have required agent icon');
+        return INVALID_MOVE;
+      }
+
+      if (playerState.availableAgents <= 0) {
+        console.log('Invalid move: No available agents');
+        return INVALID_MOVE;
+      }
+      const { cost, rewards } = locationState;
+
+      if (playerState.water < cost.water || 
+          playerState.spice < cost.spice || 
+          playerState.solari < cost.solari) {
+        console.log('Invalid move: Insufficient resources');
+        return INVALID_MOVE;
+      }
+      // TODO: Check Spy
+      if (locationState.playerAgents.length > 0) {
+        console.log('Invalid move: Location already has an agent');
+        return INVALID_MOVE;
+      }
+      // All validation passed, now apply changes
+      playerState.hand = playerState.hand.filter(card => card.id !== cardId);
+      playerState.availableAgents--;
+      locationState.playerAgents.push(playerID);
+      playerState.water += (rewards.water - cost.water);
+      playerState.spice += (rewards.spice - cost.spice); 
+      playerState.solari += (rewards.solari - cost.solari);
+      // TODO: Card effects
+      // TODO: Garrisoned troops
+    },
+    reveal: ({ G, ctx }) => {
+      const playerId = ctx.currentPlayer;
+      G.players[playerId].revealed = true;
+    },
+    endTurn: ({ G, ctx }) => {
+      const playerId = ctx.currentPlayer;
+      ctx.currentPlayer = ((parseInt(playerId) + 1) % ctx.numPlayers).toString();
     }
   },
 

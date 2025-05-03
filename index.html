@@ -1,11 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>boardgame.io Tutorial</title>
+  <title>Dune Uprising</title>
   <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #app {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 15px;
+      border-radius: 4px;
+    }
+    .hand-container {
+      margin: 20px 0;
+    }
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 15px;
+      width: 200px;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .card-content {
+      margin-bottom: 10px;
+    }
+    .card h4 {
+      margin: 0 0 10px 0;
+    }
+    .card p {
+      margin: 0;
+      color: #666;
+    }
+    .card button {
+      width: 100%;
+      padding: 8px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .card button:hover {
+      background: #45a049;
+    }
+    .card button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+    }
+  </style>
 </head>
 <body>
   <div id="app"></div>
-  <script src="./src/App.ts"></script>
+  <script type="module" src="./src/App.ts"></script>
 </body>
 </html>

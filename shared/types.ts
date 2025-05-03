@@ -13,14 +13,18 @@ export interface GameState {
 }
 
 export interface Card {
-    id: string;
-    name: string;
-    type: 'main' | 'intrigue' | 'conflict'; 
-  }
+  id: string;
+  name: string;
+  type: 'main' | 'intrigue' | 'conflict';
+}
+
+export interface AgentCard extends Card {
+  agentIcons: AgentIcon[];
+}
 
 export interface PlayerState {
-  hand: Card[];
-  deck: Card[];
+  hand: AgentCard[];
+  deck: AgentCard[];
   intrigue: Card[];
   leader: Card;
   water: number;
@@ -31,15 +35,12 @@ export interface PlayerState {
   revealed: boolean;
 }
 
-
-
-export interface AgentIcon {
-  id: 'emperor' | 'spacing_guild' | 'bene_gesserit' | 'spy' | 'fremen' | 'landsraad' | 'city' | 'spice_trade'
-}
+export type AgentIcon = 'emperor' | 'spacing_guild' | 'bene_gesserit' | 'spy' | 'fremen' | 'landsraad' | 'city' | 'spice_trade';
 
 export interface BoardState {
   [location: string]: {
     playerAgents: string[];
+    agentIcon: AgentIcon;
     cost: {
       water: number;
       spice: number;
