@@ -23,11 +23,10 @@ export interface AgentCard extends Card {
 }
 
 export interface CardAbility {
-    type: 'agent' | 'reveal';
-    effect: PlayerEffect;
+    type: 'agent' | 'reveal' | 'trash' | 'discard';
+    effect: CostRewardOption;
 }
 
-type PlayerEffect = (state: PlayerState) => void;
 
 export interface PlayerState {
     hand: AgentCard[];
@@ -59,7 +58,6 @@ export interface PlayerState {
         spacing_guild: number;
         bene_gesserit: number;
     }
-    drawCard: (count?: number) => void;
 }
 
 export type AgentIcon = 'emperor' | 'spacing_guild' | 'bene_gesserit' | 'spy' | 'fremen' | 'landsraad' | 'city' | 'spice_trade';

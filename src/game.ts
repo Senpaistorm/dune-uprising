@@ -1,5 +1,5 @@
 import { Game } from 'boardgame.io';
-import { GameState, Card, BoardState, AgentCard } from '@shared/types';
+import { GameState, Card, BoardState, AgentCard, PlayerState, CostRewardOption } from '@shared/types';
 import { INVALID_MOVE } from 'boardgame.io/core';
 import { board as initialBoard } from './board';
 import { spyBoard as initialSpyBoard } from './spyBoard';
@@ -34,13 +34,52 @@ const allLeaderCards: Card[] = [
     { id: 'l_muaddib', name: 'Muad\'Dib', type: 'main' },
     { id: 'l_margot_fenry', name: 'Margot Fenry', type: 'main' },
     { id: 'l_gurney_halleck', name: 'Gurney Halleck', type: 'main' },
-    { id: 'l_duncan', name: 'Duncan Idaho', type: 'main' },
+    { id: 'l_feyd_rautha', name: 'Feyd Rautha', type: 'main' },
 ];
 
 // fill this with all the conflict cards
 const allConflictCards: Card[] = [
     { id: 'cf_1', name: 'Skirmish', type: 'conflict' },
 ];
+
+function resolvePlayerState(playerState: PlayerState, locationOption: CostRewardOption) {
+    if (locationOption.cost) {
+        playerState.water -= locationOption.cost.water || 0;
+        playerState.spice -= locationOption.cost.spice || 0;
+        playerState.solari -= locationOption.cost.solari || 0;
+    }
+    for (const reward of locationOption.rewards) {
+        if (reward.type === 'gain') {
+            if (reward.resource === 'water') {
+                playerState.water += reward.amount;
+            } else if (reward.resource === 'spice') {
+                playerState.spice += reward.amount;
+            } else if (reward.resource === 'solari') {
+                playerState.solari += reward.amount;
+            } else if (reward.resource === 'card') {
+                // Draw cards directly since we're in a move
+                for (let i = 0; i < reward.amount; i++) {
+                    if (playerState.deck.length === 0) {
+                        if (playerState.discard.length === 0) {
+                            break;
+                        }
+                        playerState.deck = [...playerState.discard].sort(() => Math.random() - 0.5);
+                        playerState.discard = [];
+                    }
+                    const card = playerState.deck.pop();
+                    if (card) {
+                        playerState.hand.push(card);
+                    }
+                }
+            } else if (reward.resource === 'troop') {
+                playerState.troopSupply -= reward.amount;
+                playerState.garrisonedTroops += reward.amount;
+            } else if (reward.resource === 'influence') {
+                playerState.influence[reward.faction as keyof PlayerState['influence']] += reward.amount;
+            }
+        }
+    }
+}
 
 export const DuneUprising: Game<GameState> = {
     name: 'dune-uprising',
@@ -88,32 +127,37 @@ export const DuneUprising: Game<GameState> = {
                     spacing_guild: 0,
                     bene_gesserit: 0,
                 },
-                drawCard: (count = 1) => {
-                    let state = players[i.toString()];
-                    for (let i = 0; i < count; i++) {
-                        if (state.deck.length === 0) {
-                            if (state.discard.length === 0) {
-                                return;
-                            }
-                            state.deck = [...state.discard].sort(() => Math.random() - 0.5);
-                            state.discard = [];
-                        }
-                        const card = state.deck.pop();
-                        if (card) {
-                            state.hand.push(card);
-                        }
-                    }
-                }
             };
+        }
+        // each player draws 5 cards
+        for (const playerId in players) {
+            for (let i = 0; i < 5; i++) {
+                const card = players[playerId].deck.pop();
+                if (card) {
+                    players[playerId].hand.push(card);
+                }
+            }
         }
 
         return { intrigueDeck, players, conflictDeck, currentRound, shieldWallUp, board, spyBoard };
     },
 
     moves: {
-        drawCard: ({ G, playerID }) => {
+        drawCard: ({ G, playerID }, count = 1) => {
             const playerState = G.players[playerID];
-            playerState.drawCard();
+            for (let i = 0; i < count; i++) {
+                if (playerState.deck.length === 0) {
+                    if (playerState.discard.length === 0) {
+                        return;
+                    }
+                    playerState.deck = [...playerState.discard].sort(() => Math.random() - 0.5);
+                    playerState.discard = [];
+                }
+                const card = playerState.deck.pop();
+                if (card) {
+                    playerState.hand.push(card);
+                }
+            }
         },
         placeAgent: ({ G, playerID }, cardId: string, location: string) => {
             // Validation phase
@@ -154,8 +198,16 @@ export const DuneUprising: Game<GameState> = {
                 playerState.hand.splice(cardIndex, 1);
             }
             playerState.agentsOnBoard++;
+            playerState.cardsInPlay.push(card);
             locationState.playerAgents.push(playerID);
             // TODO: Card effects and location effects
+            const locationOption = locationState.options[0];
+            resolvePlayerState(playerState, locationOption);
+            for (const ability of card.abilities || []) {
+                if (ability.type === 'agent') {
+                    resolvePlayerState(playerState, ability.effect);
+                }
+            }
         },
         reveal: ({ G, playerID }) => {
             const playerState = G.players[playerID];

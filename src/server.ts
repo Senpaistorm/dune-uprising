@@ -1,7 +1,10 @@
 import { Server, Origins } from 'boardgame.io/server';
 import { DuneUprising } from './game';
 
-const server = Server({ games: [DuneUprising], origins: [Origins.LOCALHOST] });
+const server = Server({ 
+  games: [DuneUprising], 
+  origins: ['http://localhost:1234', 'http://localhost:8000', 'http://127.0.0.1:1234', 'http://127.0.0.1:8000']
+});
 
 const PORT = Number(process.env.PORT) || 8000;
 
