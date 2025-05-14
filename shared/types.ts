@@ -8,6 +8,7 @@ export interface GameState {
     shieldWallUp: boolean;
     board: BoardState;
     spyBoard: SpyBoard;
+    imperialRow: AgentCard[];
 }
 
 export interface Card {
@@ -19,6 +20,7 @@ export interface Card {
 export interface AgentCard extends Card {
     agentIcons: AgentIcon[];
     persuasion: number;
+    persuasionCost?: number;
     abilities?: CardAbility[];
 }
 
@@ -47,7 +49,7 @@ export interface PlayerState {
 
     revealed: boolean;
     sentAgent: boolean;
-    
+    currentPersuasion: number;
     garrisonedTroops: number;
     troopSupply: number;
     hasHook: boolean;

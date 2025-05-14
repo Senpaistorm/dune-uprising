@@ -17,13 +17,15 @@ const allStartingCards: AgentCard[] = [
     { id: 'c_convincing', name: 'Convincing Argument', type: 'main', agentIcons: [], persuasion: 2 },
 ];
 
-const imperiumCards: Card[] = [
-    { id: 'i_dangeorous_rhetoric', name: 'Dangeorous Rhetoric', type: 'intrigue' },
-    { id: 'i_guild_envoy', name: 'Guild Envoy', type: 'intrigue' },
+const imperiumCards: AgentCard[] = [
+    { id: 'i_dangeorous_rhetoric', name: 'Dangeorous Rhetoric', type: 'main', agentIcons: ['landsraad'], persuasion: 1, persuasionCost: 3 },
+    { id: 'i_guild_envoy', name: 'Guild Envoy', type: 'main', agentIcons: ['spacing_guild'], persuasion: 1, persuasionCost: 3 },
 ];
 
-const prepareTheWay: AgentCard = { id: 'r_prepare_the_way', name: 'Prepare the Way', type: 'main', agentIcons: ['landsraad', 'city'], persuasion: 2 };
-const spiceMustFlow: AgentCard = { id: 'r_spice_must_flow', name: 'Spice Must Flow', type: 'main', agentIcons: [], persuasion: 0 };
+const prepareTheWay: AgentCard = { 
+    id: 'r_prepare_the_way', name: 'Prepare the Way', type: 'main', agentIcons: ['landsraad', 'city'], persuasion: 2, persuasionCost: 2 };
+const spiceMustFlow: AgentCard = { 
+    id: 'r_spice_must_flow', name: 'Spice Must Flow', type: 'main', agentIcons: [], persuasion: 0, persuasionCost: 9 };
 
 const allIntrigueCards: Card[] = [
     { id: 'i_ambush', name: 'Ambush', type: 'intrigue' },
@@ -92,6 +94,9 @@ export const DuneUprising: Game<GameState> = {
             ...Array.from({ length: 8 }, () => ({ ...prepareTheWay })),
             ...Array.from({ length: 10 }, () => ({ ...spiceMustFlow }))
         ];
+        const imperialRow = [
+            ...Array.from({ length: 8 }, () => ({ ...imperiumCards[0]}))
+        ];
 
         let board = { ...initialBoard };
         let spyBoard = { ...initialSpyBoard };
@@ -127,6 +132,7 @@ export const DuneUprising: Game<GameState> = {
                     spacing_guild: 0,
                     bene_gesserit: 0,
                 },
+                currentPersuasion: 0,
             };
         }
         // each player draws 5 cards
@@ -139,7 +145,7 @@ export const DuneUprising: Game<GameState> = {
             }
         }
 
-        return { intrigueDeck, players, conflictDeck, currentRound, shieldWallUp, board, spyBoard };
+        return { intrigueDeck, players, conflictDeck, currentRound, shieldWallUp, board, spyBoard, imperialRow };
     },
 
     moves: {
@@ -215,9 +221,24 @@ export const DuneUprising: Game<GameState> = {
                 return INVALID_MOVE;
             }
             playerState.revealed = true;
-            // gain persuasion
-            // buy cards
-            // if this is the last reveal, go to combat phase
+            let persuasion = 0;
+            for (const card of playerState.hand) {
+                persuasion += card.persuasion;
+            }
+            playerState.currentPersuasion = persuasion;
+            // resolve reveal effects
+        },
+        acquireCard: ({ G, playerID }, cardId: string) => {
+            const playerState = G.players[playerID];
+            const card = G.imperialRow.find(card => card.id === cardId);
+            if (!card) {
+                return INVALID_MOVE;
+            }
+            if (card.persuasionCost && playerState.currentPersuasion < card.persuasionCost) {
+                return INVALID_MOVE;
+            }
+            playerState.discard.push(card);
+            playerState.currentPersuasion -= card.persuasionCost || 0;
         },
         endTurn: ({ G, ctx }) => {
             const playerId = ctx.currentPlayer;
